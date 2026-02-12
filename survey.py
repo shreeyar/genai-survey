@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import csv
 import io
+import re
 
 # -------------------------
 # App configuration & styles
@@ -71,24 +72,6 @@ ROLE_OPTIONS = [
     "Other",
 ]
 
-INTERESTS_OPTIONS = [
-    "Foundations: prompts, safety, limitations",
-    "Productivity: summarization, drafting, research",
-    "Prompt engineering for high-quality outputs",
-    "Using GenAI in Microsoft 365/Copilot",
-    "Using GenAI for coding (GitHub Copilot)",
-    "Data privacy, security, and responsible AI",
-    "Evaluation of AI outputs (quality/guardrails)",
-    "Building apps with APIs (Azure OpenAI, Gemini, Bedrock)",
-    "RAG (retrieval augmented generation)",
-    "Fine-tuning and embeddings basics",
-    "Model selection and cost/performance trade-offs",
-    "LLM ops: monitoring, telemetry, and cost control",
-    "Testing AI systems (quality, bias, hallucinations)",
-    "Integrating AI in SDLC/DevOps",
-    "Domain-specific use cases (please specify)",
-]
-
 FORMATS_OPTIONS = [
     "Live demo + Q&A (60–90 min)",
     "Hands-on lab with guided exercises",
@@ -97,8 +80,6 @@ FORMATS_OPTIONS = [
     "Self-paced materials and quick reference guides",
     "Show-and-tell of internal use cases",
 ]
-
-TIMING_OPTIONS = ["Mornings", "Midday", "Afternoons", "Evenings"]
 
 COMFORT_OPTIONS = [
     "1 – New to AI (need basics)",
@@ -110,9 +91,9 @@ COMFORT_OPTIONS = [
 
 FREQ_OPTIONS = ["Daily", "Weekly", "Monthly", "Rarely", "Never"]
 
-# Output schema columns
+# Output schema columns (kept for compatibility; removed fields will be saved as blanks)
 COLUMNS = [
-    "timestamp","consent","comfort","tools_used","tools_used_other","tools_frequency",
+    "timestamp","comfort","tools_used","tools_used_other","tools_frequency",
     "role","role_other","learning_interests","learning_interests_other","implementation_idea_flag",
     "implementation_idea_text","session_formats","timing_preferences","timezone","followup_optin",
     "name","email"
@@ -122,7 +103,6 @@ COLUMNS = [
 # Utilities: CSV append + load
 # -------------------------
 def append_row_to_csv(row: dict):
-    # Ensure order and defaults for missing keys
     record = {c: row.get(c, "") for c in COLUMNS}
     is_new = not CSV_PATH.exists() or CSV_PATH.stat().st_size == 0
     with CSV_PATH.open("a", newline="", encoding="utf-8") as f:
@@ -139,28 +119,13 @@ def df_current() -> pd.DataFrame:
             return pd.DataFrame(columns=COLUMNS)
     return pd.DataFrame(columns=COLUMNS)
 
-def validate_email(email: str) -> bool:
-    if not email:
-        return True
-    import re
-    return re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email) is not None
-
-def multi_select_with_limit(label, options, limit, key):
-    selected = st.multiselect(label, options, key=key)
-    if len(selected) > limit:
-        st.warning(f"Limit reached: You can select up to {limit}.")
-        selected = selected[:limit]
-        st.session_state[key] = selected
-    return selected
-
 # -------------------------
 # UI
 # -------------------------
 st.markdown('<div class="container-like">', unsafe_allow_html=True)
 st.title("SoM GenAI Learning Interests & Readiness Survey")
 st.markdown(
-    '<p class="intro">Take a quick (3–5 minute) survey to help us design GenAI learning that’s most useful for you! '
-    "</p>",
+    '<p class="intro">Take a quick (3–5 minute) survey to help us design GenAI learning that’s most useful for you!</p>',
     unsafe_allow_html=True,
 )
 
@@ -171,52 +136,63 @@ with st.form("survey_form", clear_on_submit=True):
     # Q2 Tools
     tools = st.multiselect("Q2. Which AI tools have you used? Select all that apply.*", TOOLS_OPTIONS)
     tools_other = ""
-    # Mutually exclusive behavior for "None yet"
     if "None yet" in tools and len(tools) > 1:
         tools = ["None yet"]
     if "Other (please specify)" in tools:
         tools_other = st.text_input("Please specify other tool(s)")
 
-    # Q3 Frequency (shown only if not "None yet")
+    # Q3 Frequency (only if used tools)
     frequency = ""
     if "None yet" not in tools:
         frequency = st.selectbox("Q3. How often do you use AI tools in your work?", options=["Select one"] + FREQ_OPTIONS)
-        st.caption("Shown only if you’ve used any tools.")
 
     # Q4 Role
-    role = st.selectbox("Q4. What is your primary role?*", options=["Select one"] + ROLE_OPTIONS)
+    role = st.selectbox(
+    "Q4. What is your primary role?*",
+    options=["Select one"] + ROLE_OPTIONS,
+    key="role_select",
+    )
+
     role_other = ""
-    if role == "Other":
-        role_other = st.text_input("Please specify your role")
+    role_is_other = role.lower().startswith("other")
+    if role_is_other:
+        role_other = st.text_input(
+            "Please specify your role",
+            key="role_other_text",
+            placeholder="e.g., Data Engineer, Scrum Master",
+        )
 
-    # Q5 Interests with max 5
-    interests = multi_select_with_limit(
-        "Q5. What do you want to learn more about regarding AI? Select up to 5.*",
-        INTERESTS_OPTIONS,
-        limit=5,
-        key="interests",
+    # Q5 Interests — free response
+    interests_free = st.text_area(
+    "Q5. What do you want to learn more about regarding AI?*",
+    key="interests_free",
+    placeholder="Prompt engineering; Copilot in Excel; Responsible AI; RAG; AI for test automation",
+    height=140,
     )
-    interests_other = ""
-    if "Domain-specific use cases (please specify)" in interests:
-        interests_other = st.text_input("Please specify domain or topic")
 
-    # Q6 Implementation ideas
+    # Q6 Implementation ideas — show text area only when "Yes" is selected
     idea_flag = st.radio(
-        "Q6. Do you have any ideas on how to implement AI in your role already?*",
-        ["Yes", "Not yet"],
-        horizontal=True,
-    )
+    "Q6. Do you have any ideas on how to implement AI in your role already?*",
+    ["Yes", "Not yet"],
+    horizontal=True,
+    key="idea_flag",
+)
+
+    # Only render the follow-up prompt and text area when "Yes" is selected
     idea_text = ""
     if idea_flag == "Yes":
+        st.write("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
         idea_text = st.text_area(
-            "Please describe your idea briefly (what problem, where in workflow, expected benefit).",
+            label="",
+            key="idea_text",
             max_chars=800,
-            placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%..."
+            placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
         )
 
     # Q7 Session formats
     formats = st.multiselect("Q7. Which session formats would be most helpful?*", FORMATS_OPTIONS)
 
+    # Submit button
     submitted = st.form_submit_button("Submit response")
 
 # -------------------------
@@ -225,22 +201,16 @@ with st.form("survey_form", clear_on_submit=True):
 status_area = st.empty()
 
 def required_field_checks():
-    if consent != "Yes":
-        return False, "Please provide consent to proceed."
     if comfort == "Select one":
         return False, "Please select your comfort level."
     if len(tools) == 0:
         return False, "Please select at least one tool option."
     if role == "Select one":
         return False, "Please select your role."
-    if len(interests) == 0:
-        return False, "Please select at least one learning interest."
-    if len(interests) > 5:
-        return False, "You can select up to 5 learning interests."
+    if not (interests_free or "").strip():
+        return False, "Please share at least one topic or question for Q5."
     if idea_flag == "Yes" and not (idea_text or "").strip():
         return False, "Please describe your implementation idea."
-    if followup in ("Yes", "Maybe") and email and not validate_email(email.strip()):
-        return False, "Please enter a valid email address."
     return True, ""
 
 if submitted:
@@ -250,23 +220,23 @@ if submitted:
     else:
         row = {
             "timestamp": datetime.utcnow().isoformat(),
-            "consent": consent,
             "comfort": comfort,
             "tools_used": "; ".join(tools),
             "tools_used_other": tools_other.strip() if "Other (please specify)" in tools else "",
             "tools_frequency": "" if "None yet" in tools else (frequency if frequency != "Select one" else ""),
             "role": role,
             "role_other": role_other.strip() if role == "Other" else "",
-            "learning_interests": "; ".join(interests),
-            "learning_interests_other": interests_other.strip() if "Domain-specific use cases (please specify)" in interests else "",
+            "learning_interests": (interests_free or "").strip(),
+            "learning_interests_other": "",
             "implementation_idea_flag": idea_flag,
             "implementation_idea_text": (idea_text or "").strip() if idea_flag == "Yes" else "",
             "session_formats": "; ".join(formats),
-            "timing_preferences": "; ".join(timing),
-            "timezone": timezone.strip(),
-            "followup_optin": followup if followup != "Select one" else "",
-            "name": name.strip(),
-            "email": email.strip(),
+            # Removed Q8/Q9: keep these blank for CSV schema compatibility
+            "timing_preferences": "",
+            "timezone": "",
+            "followup_optin": "",
+            "name": "",
+            "email": "",
         }
         try:
             append_row_to_csv(row)
@@ -278,7 +248,7 @@ if submitted:
 # Downloads and live view
 # -------------------------
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
-st.subheader("Admin: Data and Exports")
+st.subheader("Responses")
 
 current_df = df_current()
 st.caption("Live responses (from CSV):")
