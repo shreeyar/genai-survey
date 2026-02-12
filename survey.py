@@ -52,28 +52,22 @@ CSV_PATH = Path("SoM_GenAI_Survey.csv")
 
 TOOLS_OPTIONS = [
     "ChatGPT / GPT-4 or later",
+    "GPS Sidekick",
     "Microsoft Copilot (M365/GitHub/Windows)",
     "Google Gemini",
     "Claude (Anthropic)",
-    "Perplexity",
-    "Midjourney / Stable Diffusion / DALL·E",
-    "Azure OpenAI services",
-    "Amazon Bedrock / CodeWhisperer",
-    "Databricks / MLflow / AutoML",
     "Other (please specify)",
     "None yet",
 ]
 
 ROLE_OPTIONS = [
-    "Developer/Engineer",
-    "Business Analyst (BA)",
+    "Developer",
+    "Business Analyst",
     "Tester/QA",
-    "Data/ML Engineer or Scientist",
-    "Product/Project Manager",
-    "Architecture",
+    "Project Manager",
     "Design/UX",
-    "Operations/Support",
     "Leadership/People Manager",
+    "Organizational Change Management",
     "Other",
 ]
 
@@ -165,16 +159,9 @@ def multi_select_with_limit(label, options, limit, key):
 st.markdown('<div class="container-like">', unsafe_allow_html=True)
 st.title("SoM GenAI Learning Interests & Readiness Survey")
 st.markdown(
-    '<p class="intro">This brief survey (3–5 minutes) helps tailor GenAI learning to your needs. '
-    "We’ll aggregate results to guide planning; individual responses won’t be shared outside the planning team.</p>",
+    '<p class="intro">Take a quick (3–5 minute) survey to help us design GenAI learning that’s most useful for you! '
+    "</p>",
     unsafe_allow_html=True,
-)
-
-# Optional consent gating (adds to output schema)
-consent = st.selectbox(
-    "Consent: May we record and aggregate your responses for learning program planning?*",
-    options=["Yes", "No"],
-    index=0
 )
 
 with st.form("survey_form", clear_on_submit=True):
@@ -216,7 +203,7 @@ with st.form("survey_form", clear_on_submit=True):
     # Q6 Implementation ideas
     idea_flag = st.radio(
         "Q6. Do you have any ideas on how to implement AI in your role already?*",
-        ["Yes", "Not yet", "Prefer to discuss live"],
+        ["Yes", "Not yet"],
         horizontal=True,
     )
     idea_text = ""
@@ -229,22 +216,6 @@ with st.form("survey_form", clear_on_submit=True):
 
     # Q7 Session formats
     formats = st.multiselect("Q7. Which session formats would be most helpful?*", FORMATS_OPTIONS)
-
-    # Q8 Timing
-    timing = st.multiselect("Q8. What times work best for live sessions?", TIMING_OPTIONS)
-    timezone = st.text_input("Time zone (optional)")
-
-    # Q9 Follow-up
-    followup = st.selectbox("Q9. Are you open to a short follow-up to explore your needs or pilot ideas?",
-                            options=["Select one", "Yes", "Maybe", "No"])
-    name = ""
-    email = ""
-    if followup in ("Yes", "Maybe"):
-        cols = st.columns(2)
-        with cols[0]:
-            name = st.text_input("Name (optional)")
-        with cols[1]:
-            email = st.text_input("Email (optional)")
 
     submitted = st.form_submit_button("Submit response")
 
