@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import csv
 import io
@@ -93,10 +94,10 @@ FREQ_OPTIONS = ["Daily", "Weekly", "Monthly", "Rarely", "Never"]
 
 # Output schema columns (kept for compatibility; removed fields will be saved as blanks)
 COLUMNS = [
-    "timestamp", "consent", "comfort","tools_used","tools_used_other","tools_frequency",
+    "name","email", "comfort","tools_used","tools_used_other","tools_frequency",
     "role","role_other","learning_interests","learning_interests_other","implementation_idea_flag",
-    "implementation_idea_text","session_formats","timing_preferences","timezone","followup_optin",
-    "name","email"
+    "implementation_idea_text","session_formats", "timestamp"
+    
 ]
 
 # -------------------------
@@ -130,6 +131,10 @@ st.markdown(
 )
 
 with st.form("survey_form", clear_on_submit=True):
+    # Contact info
+    name = st.text_input("Your name*")
+    email = st.text_input("Deloitte email*")
+
     # Consent
     consent = st.radio("Consent to proceed?*", options=["Yes, continue", "No, exit survey"], horizontal=True, index=0)
 
@@ -151,22 +156,15 @@ with st.form("survey_form", clear_on_submit=True):
     if "None yet" not in tools:
         frequency = st.selectbox("Q3. How often do you use AI tools in your work?", options=["Select one"] + FREQ_OPTIONS)
 
-    # Q4 Role
+    # Q4 Role (show "Other" text input only when "Other" is selected)
     role = st.selectbox(
-    "Q4. What is your primary role?*",
-    options=["Select one"] + ROLE_OPTIONS,
-    key="role_select",
+        "Q4. What is your primary role?*",
+        options=["Select one"] + ROLE_OPTIONS,
+        key="role_select",
     )
-
     role_other = ""
-    role_is_other = role.lower().startswith("other")
-    if role_is_other:
+    if role == "Other":
         role_other = st.text_input(
-            "Please specify your role",
-            key="role_other_text",
-            placeholder="e.g., Data Engineer, Scrum Master",
-        )
-    role_other = st.text_input(
             "If not listed, please specify your role",
             key="role_other_text",
             placeholder="e.g., Data Engineer, Scrum Master",
@@ -174,19 +172,19 @@ with st.form("survey_form", clear_on_submit=True):
 
     # Q5 Interests — free response
     interests_free = st.text_area(
-    "Q5. What do you want to learn more about regarding AI?*",
-    key="interests_free",
-    placeholder="Examples: Prompt engineering; Copilot in Excel; Responsible AI; RAG; AI for test automation",
-    height=140,
+        "Q5. What do you want to learn more about regarding AI?*",
+        key="interests_free",
+        placeholder="Examples: Prompt engineering; Copilot in Excel; Responsible AI; RAG; AI for test automation",
+        height=140,
     )
 
     # Q6 Implementation ideas — show text area only when "Yes" is selected
     idea_flag = st.radio(
-    "Q6. Do you have any ideas on how to implement AI in your role already?*",
-    ["Yes", "Not yet"],
-    horizontal=True,
-    key="idea_flag",
-)
+        "Q6. Do you have any ideas on how to implement AI in your role already?*",
+        ["Yes", "Not yet"],
+        horizontal=True,
+        key="idea_flag",
+    )
 
     # Only render the follow-up prompt and text area when "Yes" is selected
     idea_text = ""
@@ -210,7 +208,17 @@ with st.form("survey_form", clear_on_submit=True):
 # -------------------------
 status_area = st.empty()
 
+# Simple email validation pattern
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
 def required_field_checks():
+    # Contact info
+    if not (name or "").strip() or len((name or "").strip()) < 2:
+        return False, "Please enter your name."
+    if not (email or "").strip():
+        return False, "Please enter your work email."
+    if not EMAIL_RE.match(email.strip()):
+        return False, "Please enter a valid email address (e.g., name@company.com)."
     # Consent
     if consent != "Yes, continue":
         return False, "Please provide consent to proceed."
@@ -232,8 +240,8 @@ if submitted:
         status_area.markdown(f'<p class="error">{msg}</p>', unsafe_allow_html=True)
     else:
         row = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "consent": "Yes",
+            "name": (name or "").strip(),
+            "email": (email or "").strip(),
             "comfort": comfort,
             "tools_used": "; ".join(tools),
             "tools_used_other": tools_other.strip() if "Other (please specify)" in tools else "",
@@ -245,12 +253,7 @@ if submitted:
             "implementation_idea_flag": idea_flag,
             "implementation_idea_text": (idea_text or "").strip() if idea_flag == "Yes" else "",
             "session_formats": "; ".join(formats),
-            # Removed Q8/Q9: keep these blank for CSV schema compatibility
-            "timing_preferences": "",
-            "timezone": "",
-            "followup_optin": "",
-            "name": "",
-            "email": "",
+            "timestamp": datetime.now(ZoneInfo("America/Detroit")).strftime("%Y-%m-%d %H:%M:%S"),
         }
         try:
             append_row_to_csv(row)
