@@ -93,7 +93,7 @@ FREQ_OPTIONS = ["Daily", "Weekly", "Monthly", "Rarely", "Never"]
 
 # Output schema columns (kept for compatibility; removed fields will be saved as blanks)
 COLUMNS = [
-    "timestamp","comfort","tools_used","tools_used_other","tools_frequency",
+    "timestamp", "consent", "comfort","tools_used","tools_used_other","tools_frequency",
     "role","role_other","learning_interests","learning_interests_other","implementation_idea_flag",
     "implementation_idea_text","session_formats","timing_preferences","timezone","followup_optin",
     "name","email"
@@ -130,6 +130,11 @@ st.markdown(
 )
 
 with st.form("survey_form", clear_on_submit=True):
+    # Consent
+    consent = st.radio("Consent to proceed?*", options=["Yes, continue", "No, exit survey"], horizontal=True, index=0)
+
+    st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
+    
     # Q1 Comfort
     comfort = st.selectbox("Q1. How comfortable are you with using AI?*", options=["Select one"] + COMFORT_OPTIONS)
 
@@ -201,6 +206,9 @@ with st.form("survey_form", clear_on_submit=True):
 status_area = st.empty()
 
 def required_field_checks():
+    # Consent
+    if consent != "Yes, continue":
+        return False, "Please provide consent to proceed."
     if comfort == "Select one":
         return False, "Please select your comfort level."
     if len(tools) == 0:
@@ -220,6 +228,7 @@ if submitted:
     else:
         row = {
             "timestamp": datetime.utcnow().isoformat(),
+            "consent": "Yes",
             "comfort": comfort,
             "tools_used": "; ".join(tools),
             "tools_used_other": tools_other.strip() if "Other (please specify)" in tools else "",
@@ -240,7 +249,7 @@ if submitted:
         }
         try:
             append_row_to_csv(row)
-            status_area.markdown('<p class="success">Response recorded. Thank you! You can submit another below.</p>', unsafe_allow_html=True)
+            status_area.markdown('<p class="success">Response recorded. Thank you! </p>', unsafe_allow_html=True)
         except Exception as e:
             status_area.markdown(f'<p class="error">Could not save your response: {e}</p>', unsafe_allow_html=True)
 
