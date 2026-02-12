@@ -166,12 +166,17 @@ with st.form("survey_form", clear_on_submit=True):
             key="role_other_text",
             placeholder="e.g., Data Engineer, Scrum Master",
         )
+    role_other = st.text_input(
+            "If not listed, please specify your role",
+            key="role_other_text",
+            placeholder="e.g., Data Engineer, Scrum Master",
+        )
 
     # Q5 Interests — free response
     interests_free = st.text_area(
     "Q5. What do you want to learn more about regarding AI?*",
     key="interests_free",
-    placeholder="Prompt engineering; Copilot in Excel; Responsible AI; RAG; AI for test automation",
+    placeholder="Examples: Prompt engineering; Copilot in Excel; Responsible AI; RAG; AI for test automation",
     height=140,
     )
 
