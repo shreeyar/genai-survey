@@ -163,12 +163,17 @@ with st.form("survey_form", clear_on_submit=True):
         key="role_select",
     )
     role_other = ""
-    if role == "Other":
-        role_other = st.text_input(
-            "If not listed, please specify your role",
-            key="role_other_text",
-            placeholder="e.g., Data Engineer, Scrum Master",
-        )
+    # if role == "Other":
+    #     role_other = st.text_input(
+    #         "If not listed, please specify your role",
+    #         key="role_other_text",
+    #         placeholder="e.g., Data Engineer, Scrum Master",
+    #     )
+    role_other = st.text_input(
+        "If not listed, please specify your role",
+        key="role_other_text",
+        placeholder="e.g., Data Engineer, Scrum Master",
+    )
 
     # Q5 Interests — free response
     interests_free = st.text_area(
@@ -188,14 +193,21 @@ with st.form("survey_form", clear_on_submit=True):
 
     # Only render the follow-up prompt and text area when "Yes" is selected
     idea_text = ""
-    if idea_flag == "Yes":
-        st.write("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
-        idea_text = st.text_area(
-            label="",
-            key="idea_text",
-            max_chars=800,
-            placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
-        )
+    # if idea_flag == "Yes":
+    #     st.write("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
+    #     idea_text = st.text_area(
+    #         label="",
+    #         key="idea_text",
+    #         max_chars=800,
+    #         placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
+    #     )
+    ideas = st.text_input("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
+    idea_text = st.text_area(
+        label="",
+        key="idea_text",
+        max_chars=800,
+        placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
+    )
 
     # Q7 Session formats
     formats = st.multiselect("Q7. Which session formats would be most helpful?*", FORMATS_OPTIONS)
