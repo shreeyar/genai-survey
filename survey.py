@@ -104,9 +104,9 @@ LEARNING_INTERESTS_OPTIONS = [
 
 # Output schema columns (kept for compatibility; removed fields will be saved as blanks)
 COLUMNS = [
-    "comfort","tools_used","tools_used_other","tools_frequency",
+    "timestamp","comfort","tools_used","tools_used_other",
     "role","role_other","learning_interests","learning_interests_other","implementation_idea_flag",
-    "implementation_idea_text","session_formats", "timestamp"
+    "implementation_idea_text","session_formats"
 ]
 
 # -------------------------
@@ -156,14 +156,9 @@ with st.form("survey_form", clear_on_submit=True):
     if "Other (please specify)" in tools:
         tools_other = st.text_input("Please specify other tool(s)")
 
-    # Q3 Frequency (only if used tools)
-    frequency = ""
-    if "None yet" not in tools:
-        frequency = st.selectbox("Q3. How often do you use AI tools in your work?", options=["Select one"] + FREQ_OPTIONS)
-
-    # Q4 Role (show "Other" text input only when "Other" is selected)
+    # Q3 Role (show "Other" text input only when "Other" is selected)
     role = st.selectbox(
-        "Q4. What is your primary role?*",
+        "Q3. What is your primary role?*",
         options=["Select one"] + ROLE_OPTIONS,
         key="role_select",
     )
@@ -175,10 +170,10 @@ with st.form("survey_form", clear_on_submit=True):
             placeholder="e.g., Data Engineer, Scrum Master",
         )
 
-    # Q5 Interests — condensed (multi-select with optional short 'Other')
+    # Q4 Interests — condensed (multi-select with optional short 'Other')
     # Preserves your question text, replaces free text with curated options
     learning = st.multiselect(
-        "Q5. What do you want to learn more about regarding AI? Select up to 3 topics.*",
+        "Q4. What do you want to learn more about regarding AI? Select up to 3 topics.*",
         options=LEARNING_INTERESTS_OPTIONS,
     )
     learning_other = ""
@@ -186,26 +181,23 @@ with st.form("survey_form", clear_on_submit=True):
     if "Other (please specify)" in learning:
         learning_other = st.text_input("Other interest (short)")
 
-    # Q6 Implementation ideas — show text area only when "Yes" is selected
+    # Q5 Implementation ideas — show text area only when "Yes" is selected
     idea_flag = st.radio(
-        "Q6. Do you have any ideas on how to implement AI in your role already?*",
-        ["Yes", "Not yet"],
-        horizontal=True,
-        key="idea_flag",
+    "Q5. Do you already have an idea to apply AI in your role?*",
+    ["Yes", "Not yet"],
+    horizontal=True,
     )
     idea_text = ""
     if idea_flag == "Yes":
-        st.write("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
         idea_text = st.text_area(
-            label="",
-            key="idea_text",
-            max_chars=400,
-            placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
-            height=100,
+            "",
+            max_chars=300,
+            placeholder="Briefly describe the problem, where in the workflow, and expected benefit.",
+            height=90,
         )
 
-    # Q7 Session formats
-    formats = st.multiselect("Q7. Which session formats would be most helpful?*", FORMATS_OPTIONS)
+    # Q6 Session formats
+    formats = st.multiselect("Q6. Which session formats would be most helpful?*", FORMATS_OPTIONS)
 
     # Submit button
     submitted = st.form_submit_button("Submit response")
@@ -243,10 +235,10 @@ if submitted:
         # Map condensed Q5 selections to schema fields
         selected_topics = [t for t in learning if t != "Other (please specify)"]
         row = {
+            "timestamp": datetime.now(ZoneInfo("America/Detroit")).strftime("%Y-%m-%d %H:%M:%S"),
             "comfort": comfort,
             "tools_used": "; ".join(tools),
             "tools_used_other": (tools_other or "").strip() if "Other (please specify)" in tools else "",
-            "tools_frequency": "" if "None yet" in tools else (frequency if frequency != "Select one" else ""),
             "role": role,
             "role_other": (role_other or "").strip() if role == "Other" else "",
             "learning_interests": "; ".join(selected_topics),
@@ -254,7 +246,6 @@ if submitted:
             "implementation_idea_flag": idea_flag,
             "implementation_idea_text": (idea_text or "").strip() if idea_flag == "Yes" else "",
             "session_formats": "; ".join(formats),
-            "timestamp": datetime.now(ZoneInfo("America/Detroit")).strftime("%Y-%m-%d %H:%M:%S"),
         }
         try:
             append_row_to_csv(row)
