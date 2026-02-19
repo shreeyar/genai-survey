@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 import csv
 import io
-import re
 
 # -------------------------
 # App configuration & styles
@@ -53,11 +52,11 @@ st.markdown(BRAND_CSS, unsafe_allow_html=True)
 CSV_PATH = Path("SoM_GenAI_Survey.csv")
 
 TOOLS_OPTIONS = [
-    "ChatGPT / GPT-4 or later",
+    "ChatGPT",
     "GPS Sidekick",
-    "Microsoft Copilot (M365/GitHub/Windows)",
+    "Microsoft Copilot",
     "Google Gemini",
-    "Claude (Anthropic)",
+    "Claude",
     "Other (please specify)",
     "None yet",
 ]
@@ -92,12 +91,22 @@ COMFORT_OPTIONS = [
 
 FREQ_OPTIONS = ["Daily", "Weekly", "Monthly", "Rarely", "Never"]
 
+# Curated choices to replace free-response for Q5 (condensed, fast to answer)
+LEARNING_INTERESTS_OPTIONS = [
+    "GenAI for everyday work (Copilot + ChatGPT/Sidekick)",
+    "Advanced prompting for accuracy and speed",
+    "Research and analysis at consulting speed",
+    "Technical build patterns and coding: RAG, APIs, and automations",
+    "AI for testing/QA and documentation",
+    "Responsible AI, security, and data handling",
+    "Other (please specify)",
+]
+
 # Output schema columns (kept for compatibility; removed fields will be saved as blanks)
 COLUMNS = [
-    "name","email", "comfort","tools_used","tools_used_other","tools_frequency",
+    "comfort","tools_used","tools_used_other","tools_frequency",
     "role","role_other","learning_interests","learning_interests_other","implementation_idea_flag",
     "implementation_idea_text","session_formats", "timestamp"
-    
 ]
 
 # -------------------------
@@ -131,10 +140,6 @@ st.markdown(
 )
 
 with st.form("survey_form", clear_on_submit=True):
-    # Contact info
-    name = st.text_input("Your name*")
-    email = st.text_input("Deloitte email*")
-
     # Consent
     consent = st.radio("Consent to proceed?*", options=["Yes, continue", "No, exit survey"], horizontal=True, index=0)
 
@@ -163,25 +168,23 @@ with st.form("survey_form", clear_on_submit=True):
         key="role_select",
     )
     role_other = ""
-    # if role == "Other":
-    #     role_other = st.text_input(
-    #         "If not listed, please specify your role",
-    #         key="role_other_text",
-    #         placeholder="e.g., Data Engineer, Scrum Master",
-    #     )
-    role_other = st.text_input(
-        "If not listed, please specify your role",
-        key="role_other_text",
-        placeholder="e.g., Data Engineer, Scrum Master",
-    )
+    if role == "Other":
+        role_other = st.text_input(
+            "If not listed, please specify your role",
+            key="role_other_text",
+            placeholder="e.g., Data Engineer, Scrum Master",
+        )
 
-    # Q5 Interests — free response
-    interests_free = st.text_area(
-        "Q5. What do you want to learn more about regarding AI?*",
-        key="interests_free",
-        placeholder="Examples: Prompt engineering; Copilot in Excel; Responsible AI; RAG; AI for test automation",
-        height=140,
+    # Q5 Interests — condensed (multi-select with optional short 'Other')
+    # Preserves your question text, replaces free text with curated options
+    learning = st.multiselect(
+        "Q5. What do you want to learn more about regarding AI? Select up to 3 topics.*",
+        options=LEARNING_INTERESTS_OPTIONS,
     )
+    learning_other = ""
+    # Enforce cap to 3 selections for speed/signal (soft-gate in validation)
+    if "Other (please specify)" in learning:
+        learning_other = st.text_input("Other interest (short)")
 
     # Q6 Implementation ideas — show text area only when "Yes" is selected
     idea_flag = st.radio(
@@ -190,24 +193,16 @@ with st.form("survey_form", clear_on_submit=True):
         horizontal=True,
         key="idea_flag",
     )
-
-    # Only render the follow-up prompt and text area when "Yes" is selected
     idea_text = ""
-    # if idea_flag == "Yes":
-    #     st.write("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
-    #     idea_text = st.text_area(
-    #         label="",
-    #         key="idea_text",
-    #         max_chars=800,
-    #         placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
-    #     )
-    ideas = st.text_input("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
-    idea_text = st.text_area(
-        label="",
-        key="idea_text",
-        max_chars=800,
-        placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
-    )
+    if idea_flag == "Yes":
+        st.write("If yes, please describe your idea briefly (what problem, where in workflow, expected benefit).")
+        idea_text = st.text_area(
+            label="",
+            key="idea_text",
+            max_chars=400,
+            placeholder="Example: Use AI to auto-summarize test results to reduce reporting time by 30%...",
+            height=100,
+        )
 
     # Q7 Session formats
     formats = st.multiselect("Q7. Which session formats would be most helpful?*", FORMATS_OPTIONS)
@@ -220,17 +215,7 @@ with st.form("survey_form", clear_on_submit=True):
 # -------------------------
 status_area = st.empty()
 
-# Simple email validation pattern
-EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
-
 def required_field_checks():
-    # Contact info
-    if not (name or "").strip() or len((name or "").strip()) < 2:
-        return False, "Please enter your name."
-    if not (email or "").strip():
-        return False, "Please enter your work email."
-    if not EMAIL_RE.match(email.strip()):
-        return False, "Please enter a valid email address (e.g., name@company.com)."
     # Consent
     if consent != "Yes, continue":
         return False, "Please provide consent to proceed."
@@ -240,8 +225,12 @@ def required_field_checks():
         return False, "Please select at least one tool option."
     if role == "Select one":
         return False, "Please select your role."
-    if not (interests_free or "").strip():
-        return False, "Please share at least one topic or question for Q5."
+    if not learning:
+        return False, "Please select at least one topic for Q5."
+    if len(learning) > 3:
+        return False, "Please select up to 3 topics for Q5."
+    if "Other (please specify)" in learning and not (learning_other or "").strip():
+        return False, "Please provide a short topic for Q5 'Other'."
     if idea_flag == "Yes" and not (idea_text or "").strip():
         return False, "Please describe your implementation idea."
     return True, ""
@@ -251,17 +240,17 @@ if submitted:
     if not ok:
         status_area.markdown(f'<p class="error">{msg}</p>', unsafe_allow_html=True)
     else:
+        # Map condensed Q5 selections to schema fields
+        selected_topics = [t for t in learning if t != "Other (please specify)"]
         row = {
-            "name": (name or "").strip(),
-            "email": (email or "").strip(),
             "comfort": comfort,
             "tools_used": "; ".join(tools),
-            "tools_used_other": tools_other.strip() if "Other (please specify)" in tools else "",
+            "tools_used_other": (tools_other or "").strip() if "Other (please specify)" in tools else "",
             "tools_frequency": "" if "None yet" in tools else (frequency if frequency != "Select one" else ""),
             "role": role,
-            "role_other": role_other.strip() if role == "Other" else "",
-            "learning_interests": (interests_free or "").strip(),
-            "learning_interests_other": "",
+            "role_other": (role_other or "").strip() if role == "Other" else "",
+            "learning_interests": "; ".join(selected_topics),
+            "learning_interests_other": (learning_other or "").strip() if "Other (please specify)" in learning else "",
             "implementation_idea_flag": idea_flag,
             "implementation_idea_text": (idea_text or "").strip() if idea_flag == "Yes" else "",
             "session_formats": "; ".join(formats),
