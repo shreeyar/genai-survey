@@ -168,7 +168,6 @@ with st.form("survey_form", clear_on_submit=True):
         key="role_other_text",
         placeholder="e.g., Data Engineer, Scrum Master",
     )
-    st.markdown('<div class="small">We’ll only record this if provided.</div>', unsafe_allow_html=True)
 
     # Q4 Interests — condensed (multi-select with optional short 'Other')
     learning = st.multiselect(
@@ -195,7 +194,6 @@ with st.form("survey_form", clear_on_submit=True):
         height=90,
         placeholder="e.g., Use AI to auto-summarize test results to reduce reporting time by 30%...",
     )
-    st.markdown('<div class="small">If you select “Yes,” we’ll ask you to include a short description.</div>', unsafe_allow_html=True)
 
     # Q6 Session formats
     formats = st.multiselect("Q6. Which session formats would be most helpful? Select all that apply.*", FORMATS_OPTIONS)
