@@ -75,7 +75,6 @@ ROLE_OPTIONS = [
 FORMATS_OPTIONS = [
     "Live demo + Q&A (60–90 min)",
     "Hands-on lab with guided exercises",
-    "Role-based breakout",
     "Office hours / coaching",
     "Self-paced materials and quick reference guides",
     "Show-and-tell of internal use cases",
@@ -184,20 +183,15 @@ with st.form("survey_form", clear_on_submit=True):
     # Q5 Implementation ideas — show text area only when "Yes" is selected
     idea_flag = st.radio(
     "Q5. Do you already have an idea to apply AI in your role?*",
-    ["Yes", "Not yet"],
+    options=["Yes", "Not yet"],
     horizontal=True,
+    key="q5_flag",
     )
-    idea_text = ""
-    if idea_flag == "Yes":
-        idea_text = st.text_area(
-            "",
-            max_chars=300,
-            placeholder="Briefly describe the problem, where in the workflow, and expected benefit.",
-            height=90,
-        )
 
+    
+    
     # Q6 Session formats
-    formats = st.multiselect("Q6. Which session formats would be most helpful?*", FORMATS_OPTIONS)
+    formats = st.multiselect("Q6. Which session formats would be most helpful? Select all that apply.*", FORMATS_OPTIONS)
 
     # Submit button
     submitted = st.form_submit_button("Submit response")
