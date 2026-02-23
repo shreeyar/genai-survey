@@ -42,6 +42,7 @@ html, body, [class*="css"]  {
 .success { color: var(--success); font-weight: 600; }
 .error { color: var(--danger); font-weight: 600; }
 .help { color: var(--muted); font-size: 0.9rem; }
+.small { font-size: 0.92rem; color: var(--muted); margin-top: -6px; }
 </style>
 """
 st.markdown(BRAND_CSS, unsafe_allow_html=True)
@@ -155,41 +156,47 @@ with st.form("survey_form", clear_on_submit=True):
     if "Other (please specify)" in tools:
         tools_other = st.text_input("Please specify other tool(s)")
 
-    # Q3 Role (show "Other" text input only when "Other" is selected)
+    # Q3 Role + optional free text always visible (no conditional show/hide)
     role = st.selectbox(
         "Q3. What is your primary role?*",
         options=["Select one"] + ROLE_OPTIONS,
         key="role_select",
     )
-    role_other = ""
-    if role == "Other":
-        role_other = st.text_input(
-            "If not listed, please specify your role",
-            key="role_other_text",
-            placeholder="e.g., Data Engineer, Scrum Master",
-        )
+    # Always-visible optional field to capture unlisted roles
+    role_other = st.text_input(
+        "Optional: Add a role not listed",
+        key="role_other_text",
+        placeholder="e.g., Data Engineer, Scrum Master",
+    )
+    st.markdown('<div class="small">We’ll only record this if provided.</div>', unsafe_allow_html=True)
 
     # Q4 Interests — condensed (multi-select with optional short 'Other')
-    # Preserves your question text, replaces free text with curated options
     learning = st.multiselect(
         "Q4. What do you want to learn more about regarding AI? Select up to 3 topics.*",
         options=LEARNING_INTERESTS_OPTIONS,
     )
     learning_other = ""
-    # Enforce cap to 3 selections for speed/signal (soft-gate in validation)
+    # Keep your soft cap and optional 'Other'
     if "Other (please specify)" in learning:
         learning_other = st.text_input("Other interest (short)")
 
-    # Q5 Implementation ideas — show text area only when "Yes" is selected
+    # Q5 Implementation ideas
     idea_flag = st.radio(
-    "Q5. Do you already have an idea to apply AI in your role?*",
-    options=["Yes", "Not yet"],
-    horizontal=True,
-    key="q5_flag",
+        "Q5. Do you already have an idea to apply AI in your role?*",
+        options=["Yes", "Not yet"],
+        horizontal=True,
+        key="q5_flag",
     )
+    # Always-visible optional idea text; only required if 'Yes'
+    idea_text = st.text_area(
+        "Optional: If you have an idea, describe it briefly",
+        key="q5_text",
+        max_chars=300,
+        height=90,
+        placeholder="e.g., Use AI to auto-summarize test results to reduce reporting time by 30%...",
+    )
+    st.markdown('<div class="small">If you select “Yes,” we’ll ask you to include a short description.</div>', unsafe_allow_html=True)
 
-    
-    
     # Q6 Session formats
     formats = st.multiselect("Q6. Which session formats would be most helpful? Select all that apply.*", FORMATS_OPTIONS)
 
@@ -217,6 +224,7 @@ def required_field_checks():
         return False, "Please select up to 3 topics for Q5."
     if "Other (please specify)" in learning and not (learning_other or "").strip():
         return False, "Please provide a short topic for Q5 'Other'."
+    # Require idea description only when 'Yes' is selected
     if idea_flag == "Yes" and not (idea_text or "").strip():
         return False, "Please describe your implementation idea."
     return True, ""
@@ -234,7 +242,8 @@ if submitted:
             "tools_used": "; ".join(tools),
             "tools_used_other": (tools_other or "").strip() if "Other (please specify)" in tools else "",
             "role": role,
-            "role_other": (role_other or "").strip() if role == "Other" else "",
+            # Save the optional role text if provided (even if role != "Other")
+            "role_other": (role_other or "").strip(),
             "learning_interests": "; ".join(selected_topics),
             "learning_interests_other": (learning_other or "").strip() if "Other (please specify)" in learning else "",
             "implementation_idea_flag": idea_flag,
