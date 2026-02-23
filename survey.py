@@ -91,7 +91,6 @@ COMFORT_OPTIONS = [
 
 FREQ_OPTIONS = ["Daily", "Weekly", "Monthly", "Rarely", "Never"]
 
-# Curated choices to replace free-response for Q5 (condensed, fast to answer)
 LEARNING_INTERESTS_OPTIONS = [
     "GenAI for everyday work (Copilot + ChatGPT/Sidekick)",
     "Advanced prompting for accuracy and speed",
@@ -102,9 +101,9 @@ LEARNING_INTERESTS_OPTIONS = [
     "Other (please specify)",
 ]
 
-# Output schema columns (kept for compatibility; removed fields will be saved as blanks)
+# Output schema columns
 COLUMNS = [
-    "timestamp","comfort","tools_used","tools_used_other",
+    "timestamp","comfort","tools_used","tools_used_other","tools_used_other_optional",
     "role","role_other","learning_interests","learning_interests_other","implementation_idea_flag",
     "implementation_idea_text","session_formats"
 ]
@@ -155,19 +154,25 @@ with st.form("survey_form", clear_on_submit=True):
         tools = ["None yet"]
     if "Other (please specify)" in tools:
         tools_other = st.text_input("Please specify other tool(s)")
+    # New: always-visible optional field to capture any additional AI tool(s) we missed
+    tools_other_optional = st.text_input(
+        "OPTIONAL: Add any AI tool not listed",
+        key="tools_other_optional",
+        placeholder="e.g., Claude Code, Canva AI, Grok",
+    )
 
-    # Q3 Role + optional free text always visible (no conditional show/hide)
+    # Q3 Role + optional free text always visible
     role = st.selectbox(
         "Q3. What is your primary role?*",
         options=["Select one"] + ROLE_OPTIONS,
         key="role_select",
     )
-    # Always-visible optional field to capture unlisted roles
     role_other = st.text_input(
-        "Optional: Add a role not listed",
+        "OPTIONAL: Add a role not listed",
         key="role_other_text",
         placeholder="e.g., Data Engineer, Scrum Master",
     )
+    st.markdown('<div class="small">We’ll only record this if provided.</div>', unsafe_allow_html=True)
 
     # Q4 Interests — condensed (multi-select with optional short 'Other')
     learning = st.multiselect(
@@ -175,7 +180,6 @@ with st.form("survey_form", clear_on_submit=True):
         options=LEARNING_INTERESTS_OPTIONS,
     )
     learning_other = ""
-    # Keep your soft cap and optional 'Other'
     if "Other (please specify)" in learning:
         learning_other = st.text_input("Other interest (short)")
 
@@ -186,14 +190,14 @@ with st.form("survey_form", clear_on_submit=True):
         horizontal=True,
         key="q5_flag",
     )
-    # Always-visible optional idea text; only required if 'Yes'
     idea_text = st.text_area(
-        "Optional: If you have an idea, describe it briefly",
+        "OPTIONAL: If you have an idea, describe it briefly",
         key="q5_text",
         max_chars=300,
         height=90,
         placeholder="e.g., Use AI to auto-summarize test results to reduce reporting time by 30%...",
     )
+    st.markdown('<div class="small">If you select “Yes,” we’ll ask you to include a short description.</div>', unsafe_allow_html=True)
 
     # Q6 Session formats
     formats = st.multiselect("Q6. Which session formats would be most helpful? Select all that apply.*", FORMATS_OPTIONS)
@@ -207,7 +211,6 @@ with st.form("survey_form", clear_on_submit=True):
 status_area = st.empty()
 
 def required_field_checks():
-    # Consent
     if consent != "Yes, continue":
         return False, "Please provide consent to proceed."
     if comfort == "Select one":
@@ -222,7 +225,6 @@ def required_field_checks():
         return False, "Please select up to 3 topics for Q5."
     if "Other (please specify)" in learning and not (learning_other or "").strip():
         return False, "Please provide a short topic for Q5 'Other'."
-    # Require idea description only when 'Yes' is selected
     if idea_flag == "Yes" and not (idea_text or "").strip():
         return False, "Please describe your implementation idea."
     return True, ""
@@ -232,15 +234,15 @@ if submitted:
     if not ok:
         status_area.markdown(f'<p class="error">{msg}</p>', unsafe_allow_html=True)
     else:
-        # Map condensed Q5 selections to schema fields
         selected_topics = [t for t in learning if t != "Other (please specify)"]
         row = {
             "timestamp": datetime.now(ZoneInfo("America/Detroit")).strftime("%Y-%m-%d %H:%M:%S"),
             "comfort": comfort,
             "tools_used": "; ".join(tools),
             "tools_used_other": (tools_other or "").strip() if "Other (please specify)" in tools else "",
+            # New: save optional tools input regardless of previous 'Other' selection
+            "tools_used_other_optional": (tools_other_optional or "").strip(),
             "role": role,
-            # Save the optional role text if provided (even if role != "Other")
             "role_other": (role_other or "").strip(),
             "learning_interests": "; ".join(selected_topics),
             "learning_interests_other": (learning_other or "").strip() if "Other (please specify)" in learning else "",
@@ -264,7 +266,6 @@ current_df = df_current()
 st.caption("Live responses (from CSV):")
 st.dataframe(current_df, use_container_width=True, hide_index=True)
 
-# Download latest CSV
 csv_buf = io.StringIO()
 current_df.to_csv(csv_buf, index=False)
 st.download_button(
