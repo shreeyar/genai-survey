@@ -14,23 +14,18 @@ st.set_page_config(page_title="SoM AI First Learning Interests & Readiness Surve
 BRAND_CSS = """
 <style>
 :root {
-  /* Deloitte greens */
-  --brand: #86BC25;          /* primary green */
-  --brand-dark: #47A318;     /* darker green for hovers/active */
+  --brand: #0f62fe;
+  --brand-dark: #0043ce;
   --bg: #fafafa;
   --border: #e0e0e0;
   --text: #161616;
   --muted: #6f6f6f;
-
-  /* Use green for positive/accents; keep error legible (charcoal) */
-  --danger: #3d3d3d;         /* neutral dark for errors to avoid red */
-  --success: #47A318;        /* success green */
+  --danger: #da1e28;
+  --success: #198038;
 }
-
 html, body, [class*="css"]  {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
-
 .container-like {
   max-width: 900px;
   margin: 0 auto;
@@ -40,54 +35,13 @@ html, body, [class*="css"]  {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
-
 .intro { color: var(--muted); margin-bottom: 12px; }
 .hr { height: 1px; background: var(--border); margin: 16px 0; }
-.required { color: var(--brand-dark); margin-left: 4px; }  /* green accent for required mark */
+.required { color: var(--danger); margin-left: 4px; }
 .success { color: var(--success); font-weight: 600; }
-.error { color: var(--danger); font-weight: 600; }         /* neutral/dark, not red */
+.error { color: var(--danger); font-weight: 600; }
 .help { color: var(--muted); font-size: 0.9rem; }
 .small { font-size: 0.92rem; color: var(--muted); margin-top: -6px; }
-
-/* Streamlit default widget accents overridden to Deloitte green */
-.stButton>button {
-  background-color: var(--brand);
-  color: #fff;
-  border: 1px solid var(--brand-dark);
-  border-radius: 8px;
-}
-.stButton>button:hover {
-  background-color: var(--brand-dark);
-  border-color: var(--brand-dark);
-}
-
-/* Radios, checkboxes, sliders focus/selected state */
-input[type="radio"]:checked + div:before,
-.stRadio [role="radio"][aria-checked="true"] {
-  border-color: var(--brand) !important;
-}
-.stRadio [role="radio"][aria-checked="true"] svg {
-  color: var(--brand) !important;
-}
-.stCheckbox [data-baseweb="checkbox"] svg {
-  color: var(--brand) !important;
-}
-.stMultiSelect [data-baseweb="tag"] {
-  background: rgba(134,188,37,0.12);
-  border: 1px solid rgba(134,188,37,0.35);
-}
-.stSlider [data-baseweb="slider"]>div>div {
-  background-color: var(--brand) !important;
-}
-
-/* Inputs focus ring */
-.stTextInput input:focus,
-.stTextArea textarea:focus,
-.stSelectbox [role="combobox"]:focus {
-  outline-color: var(--brand) !important;
-  border-color: var(--brand) !important;
-  box-shadow: 0 0 0 1px var(--brand) inset, 0 0 0 2px rgba(134,188,37,0.2);
-}
 </style>
 """
 st.markdown(BRAND_CSS, unsafe_allow_html=True)
