@@ -179,7 +179,7 @@ def df_current() -> pd.DataFrame:
 st.markdown('<div class="container-like">', unsafe_allow_html=True)
 st.title("SoM GenAI Learning Interests & Readiness Survey")
 st.markdown(
-    '<p class="intro">Take a quick (3–5 minute) survey to help us design GenAI learning that’s most useful for you!</p>',
+    '<p class="intro">Take a quick (3–5 minute) survey to help us design GenAI learning that’s most useful for you! <br> Fun Fact: We used Sidekick to build this survey in just 5 hours! </p>',
     unsafe_allow_html=True,
 )
 
