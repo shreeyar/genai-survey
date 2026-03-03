@@ -226,19 +226,19 @@ def required_field_checks():
     if consent != "Yes, continue":
         return False, "Please provide consent to proceed."
     if comfort == "Select one":
-        return False, "Please select your comfort level."
+        return False, "Please select your comfort level for Q1."
     if len(tools) == 0:
-        return False, "Please select at least one tool option."
+        return False, "Please select at least one tool option for Q2."
     if role == "Select one":
-        return False, "Please select your role."
+        return False, "Please select your role for Q3."
     if not learning:
         return False, "Please select at least one topic for Q5."
     if len(learning) > 3:
         return False, "Please select up to 3 topics for Q5."
     if "Other (please specify)" in learning and not (learning_other or "").strip():
-        return False, "Please provide a short topic for Q5 'Other'."
+        return False, "Please type a short topic for Q5."
     if idea_flag == "Yes" and not (idea_text or "").strip():
-        return False, "Please describe your implementation idea."
+        return False, "Please describe your implementation idea for Q5."
     return True, ""
 
 if submitted:
@@ -285,7 +285,12 @@ st.subheader("Responses")
 
 current_df = df_current()
 st.caption("Live responses (from CSV):")
-st.dataframe(current_df, use_container_width=True, hide_index=True)
+st.dataframe(
+    current_df,
+    use_container_width=True,
+    hide_index=True,
+    height=800  # lets you see many more rows at once
+)
 
 csv_buf = io.StringIO()
 current_df.to_csv(csv_buf, index=False)
