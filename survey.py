@@ -283,22 +283,22 @@ if submitted:
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.subheader("Responses")
 
-current_df = df_current()
-st.caption("Live responses (from CSV):")
-st.dataframe(
-    current_df,
-    use_container_width=True,
-    hide_index=True,
-    height=800  # lets you see many more rows at once
-)
+# current_df = df_current()
+# st.caption("Live responses (from CSV):")
+# st.dataframe(
+#     current_df,
+#     use_container_width=True,
+#     hide_index=True,
+#     height=800  # lets you see many more rows at once
+# )
 
-csv_buf = io.StringIO()
-current_df.to_csv(csv_buf, index=False)
-st.download_button(
-    "Download CSV",
-    data=csv_buf.getvalue(),
-    file_name=CSV_PATH.name,
-    mime="text/csv",
-)
+# csv_buf = io.StringIO()
+# current_df.to_csv(csv_buf, index=False)
+# st.download_button(
+#     "Download CSV",
+#     data=csv_buf.getvalue(),
+#     file_name=CSV_PATH.name,
+#     mime="text/csv",
+# )
 
 st.markdown("</div>", unsafe_allow_html=True)
