@@ -233,12 +233,12 @@ def required_field_checks():
         return False, "Please select your role for Q3."
     if not learning:
         return False, "Please select at least one topic for Q5."
-    if len(learning) > 3:
-        return False, "Please select up to 3 topics for Q5."
-    if "Other (please specify)" in learning and not (learning_other or "").strip():
-        return False, "Please type a short topic for Q5."
-    if idea_flag == "Yes" and not (idea_text or "").strip():
-        return False, "Please describe your implementation idea for Q5."
+    # if len(learning) > 3:
+    #     return False, "Please select up to 3 topics for Q5."
+    # if "Other (please specify)" in learning and not (learning_other or "").strip():
+    #     return False, "Please type a short topic for Q5."
+    # if idea_flag == "Yes" and not (idea_text or "").strip():
+    #     return False, "Please describe your implementation idea for Q5."
     return True, ""
 
 if submitted:
